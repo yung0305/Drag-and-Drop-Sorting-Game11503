@@ -3,7 +3,7 @@
  <head>
   <meta charset="UTF-8">
   <title>【文特知識王】— 16:9 劇院版</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* === 核心樣式設定 === */
@@ -15,6 +15,7 @@
       padding: 0;
       font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
       user-select: none; /* 防止拖曳時選取到文字 */
+      -webkit-user-select: none;
     }
     
     /* 1920×1080 舞台設定 */
@@ -22,26 +23,49 @@
       transform-origin: center center; 
       overflow: hidden; 
       box-shadow: 0 0 80px rgba(0,0,0,0.8);
+      will-change: transform;
     }
 
-    /* 拖曳中的卡片特效 */
-    .dragging { pointer-events: none; transform: translate(-50%, -50%) scale(1.05) rotate(-3deg); transition: transform 0.05s ease; z-index: 9999; opacity: 0.9; }
-    
-    /* 答對動畫 */
-    @keyframes correctPop { 
-      0%{transform:scale(0.9); box-shadow:0 0 0 0 rgba(34,197,94,0)} 
-      50%{transform:scale(1.06); box-shadow:0 0 32px 8px rgba(34,197,94,.35)} 
-      100%{transform:scale(1)} 
+    /* 拖曳中的卡片特效 (優化：移除 translate 負值，改用滑鼠點擊座標計算 offset，手感更佳) */
+    .dragging { 
+      pointer-events: none; 
+      transform: scale(1.08) rotate(-4deg); 
+      transform-origin: center;
+      transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1); /* 更 Q 彈的浮現動畫 */
+      z-index: 9999; 
+      opacity: 0.95; 
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
-    .correct-anim { animation: correctPop 500ms ease-out; }
+
+    /* 項目卡片基本樣式 (優化：加入 touch-action 防止手機端拖曳時捲動頁面) */
+    .item-card {
+      touch-action: none;
+      will-change: transform;
+    }
     
+    /* 答對動畫：小圖示 */
+    @keyframes correctPop { 
+      0%{transform:scale(0.8); opacity: 0.5;} 
+      50%{transform:scale(1.15);} 
+      100%{transform:scale(1); opacity: 1;} 
+    }
+    .correct-anim { animation: correctPop 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    
+    /* 答對動畫：分類區發光 */
+    @keyframes zoneGlow {
+      0% { box-shadow: 0 0 0 0 rgba(34,197,94,0); border-color: rgba(255,255,255,1); }
+      50% { box-shadow: 0 0 40px 10px rgba(34,197,94,0.4); border-color: rgba(34,197,94,0.8); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); border-color: rgba(255,255,255,1); }
+    }
+    .zone-glow-anim { animation: zoneGlow 600ms ease-out; }
+
     /* 答錯抖動動畫 */
     @keyframes wrongShake { 
-      0%,100%{transform:translateX(0)} 
-      20%{transform:translateX(-10px)} 
-      40%{transform:translateX(10px)} 
-      60%{transform:translateX(-6px)} 
-      80%{transform:translateX(6px)} 
+      0%,100%{transform:translateX(0) rotate(0);} 
+      20%{transform:translateX(-12px) rotate(-2deg);} 
+      40%{transform:translateX(12px) rotate(2deg);} 
+      60%{transform:translateX(-8px) rotate(-1deg);} 
+      80%{transform:translateX(8px) rotate(1deg);} 
     }
     .wrong-anim { animation: wrongShake 400ms ease-in-out; }
 
@@ -52,6 +76,7 @@
     .pretty-scrollbar::-webkit-scrollbar { height: 10px; width: 10px; }
     .pretty-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 999px; }
     .pretty-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 999px; }
+    .pretty-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
   </style>
  </head>
  <body class="antialiased">
@@ -68,7 +93,7 @@
         <div class="text-white/90 bg-gradient-to-r from-fuchsia-500 to-rose-500 px-5 py-2 rounded-2xl shadow-lg text-3xl font-extrabold tracking-wide">
           【文特知識王】
         </div>
-        <div id="scoreBox" class="play-only text-fuchsia-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold">
+        <div id="scoreBox" class="play-only text-fuchsia-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold transition-all">
           分數：<span id="score">0</span>
         </div>
         <div id="timerBox" class="play-only text-sky-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold">
@@ -102,8 +127,8 @@
        
        <div id="zonesArea" class="w-full h-[58%] grid grid-cols-3 gap-6"></div>
 
-       <div class="absolute bottom-0 left-0 right-0 h-80 bg-white/70 backdrop-blur border-t border-white/60">
-        <div class="h-full px-8 py-3 overflow-y-auto pretty-scrollbar">
+       <div class="absolute bottom-0 left-0 right-0 h-80 bg-white/70 backdrop-blur border-t border-white/60 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div class="h-full px-8 py-4 overflow-y-auto pretty-scrollbar">
          <div id="itemsTrayInner" class="flex flex-wrap items-start content-start gap-4 pb-10"></div>
         </div>
        </div>
@@ -142,12 +167,12 @@
           <div class="bg-white rounded-2xl border p-6 shadow-sm">
             <h3 class="text-2xl font-bold text-slate-800 mb-4">資料備份</h3>
             <div class="flex gap-4">
-              <button id="exportBtn" class="px-5 py-3 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow">📥 下載設定檔 (JSON)</button>
-              <label class="px-5 py-3 rounded-xl bg-slate-200 text-slate-700 font-bold hover:bg-slate-300 shadow cursor-pointer">
+              <button id="exportBtn" class="px-5 py-3 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow transition-colors">📥 下載設定檔 (JSON)</button>
+              <label class="px-5 py-3 rounded-xl bg-slate-200 text-slate-700 font-bold hover:bg-slate-300 shadow cursor-pointer transition-colors">
                 📤 匯入設定檔
                 <input id="importInput" type="file" accept=".json,application/json" class="hidden">
               </label>
-              <button id="clearAllBtn" class="px-5 py-3 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow ml-auto">⚠️ 清除所有資料</button>
+              <button id="clearAllBtn" class="px-5 py-3 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow ml-auto transition-colors">⚠️ 清除所有資料</button>
             </div>
             <p class="mt-4 text-slate-500">您可以將設定檔下載備份，換電腦時再匯入即可。</p>
           </div>
@@ -157,7 +182,7 @@
       </div>
 
       <div id="finishModal" class="hidden absolute inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center">
-       <div class="bg-white rounded-3xl shadow-2xl p-10 w-[720px] text-center transform scale-110">
+       <div class="bg-white rounded-3xl shadow-2xl p-10 w-[720px] text-center transform transition-transform duration-300 scale-100">
         <div class="text-5xl font-extrabold text-emerald-600 mb-6">🎉 恭喜過關！</div>
         <div class="text-3xl text-slate-700 mb-8 font-bold">
          得分：<span id="finalScore" class="text-fuchsia-600">0</span>　
@@ -165,12 +190,12 @@
         </div>
         <div class="flex items-center justify-center gap-6">
           <button id="playAgain" class="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-3xl font-extrabold shadow-lg transition-transform hover:scale-105">再玩一次</button> 
-          <button id="closeModal" class="px-8 py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-2xl font-bold shadow">關閉</button>
+          <button id="closeModal" class="px-8 py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-2xl font-bold shadow transition-colors">關閉</button>
         </div>
        </div>
       </div>
 
-      <div id="confetti" class="pointer-events-none absolute inset-0 overflow-hidden"></div>
+      <div id="confetti" class="pointer-events-none absolute inset-0 overflow-hidden z-[65]"></div>
     </div>
   </div>
 
@@ -258,7 +283,7 @@
     // 渲染遊戲畫面
     function renderPlay() {
       applyTextSize(config.textSize);
-      $('#score').textContent = state.score;
+      updateScoreUI();
       $('#timer').textContent = formatTime(getElapsed());
 
       // 渲染分類區
@@ -273,12 +298,12 @@
         el.dataset.zoneId = z.id;
         el.innerHTML = `
           <div class="flex items-center gap-3">
-            <div class="w-24 h-20 overflow-hidden rounded-2xl bg-white/70 border">
+            <div class="w-24 h-20 overflow-hidden rounded-2xl bg-white/70 border shrink-0">
               <img src="${z.imageData || ''}" class="w-full h-full object-cover"/>
             </div>
             <div class="zone-title text-slate-800 font-extrabold leading-tight">${z.name}</div>
           </div>
-          <div class="mt-3 flex-1 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-3 grid grid-cols-3 gap-3 overflow-auto pretty-scrollbar" data-zone-drop></div>
+          <div class="mt-3 flex-1 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-3 grid grid-cols-3 gap-3 overflow-auto pretty-scrollbar items-start content-start" data-zone-drop></div>
         `;
         zonesArea.appendChild(el);
       });
@@ -289,7 +314,7 @@
       config.items.forEach(item => {
         // 如果已經答對，直接放到分類區
         if (state.locked[item.id] && state.placements[item.id]) {
-          placeItemInZone(item, state.placements[item.id]);
+          placeItemInZone(item, state.placements[item.id], false);
           return;
         }
         // 否則顯示在下方托盤
@@ -298,7 +323,7 @@
         card.style.width = '240px'; 
         card.dataset.itemId = item.id;
         card.innerHTML = `
-          <div class="w-24 h-20 overflow-hidden rounded-2xl bg-slate-50 border pointer-events-none">
+          <div class="w-24 h-20 overflow-hidden rounded-2xl bg-slate-50 border pointer-events-none shrink-0">
             <img src="${item.imageData || ''}" class="w-full h-full object-cover"/>
           </div>
           <div class="item-name text-slate-800 font-extrabold pointer-events-none">${item.name}</div>
@@ -310,37 +335,60 @@
       checkFinish();
     }
 
-    // 將小圖示放入分類區
-    function placeItemInZone(item, zoneId) {
+    // 將小圖示放入分類區 (加上動畫標記區分是否為剛放進去)
+    function placeItemInZone(item, zoneId, animate = true) {
       const zone = $(`.zone[data-zone-id="${zoneId}"]`);
       if (!zone) return;
       const drop = zone.querySelector('[data-zone-drop]');
       const mini = document.createElement('div');
-      mini.className = 'bg-gradient-to-br from-white to-emerald-50 rounded-2xl border-2 border-emerald-200 shadow p-2 flex items-center gap-2 correct-anim';
+      mini.className = `bg-gradient-to-br from-white to-emerald-50 rounded-2xl border-2 border-emerald-200 shadow p-2 flex items-center gap-2 ${animate ? 'correct-anim' : ''}`;
       mini.innerHTML = `
-        <div class="w-16 h-14 overflow-hidden rounded-xl bg-white border">
+        <div class="w-16 h-14 overflow-hidden rounded-xl bg-white border shrink-0">
           <img src="${item.imageData || ''}" class="w-full h-full object-cover"/>
         </div>
-        <div class="text-emerald-700 font-extrabold">${item.name}</div>
+        <div class="text-emerald-700 font-extrabold text-sm sm:text-base leading-tight">${item.name}</div>
       `;
       drop.appendChild(mini);
+
+      // 觸發分類區發光動畫
+      if(animate) {
+         zone.classList.remove('zone-glow-anim');
+         void zone.offsetWidth; // trigger reflow
+         zone.classList.add('zone-glow-anim');
+      }
     }
 
-    // 拖曳功能
+    function updateScoreUI() {
+      const scoreEl = $('#score');
+      scoreEl.textContent = state.score;
+      // 分數跳動特效
+      scoreEl.parentElement.classList.add('scale-110', 'text-fuchsia-600');
+      setTimeout(() => scoreEl.parentElement.classList.remove('scale-110', 'text-fuchsia-600'), 200);
+    }
+
+    // 優化後的拖曳功能
     function makeDraggable(card, item) {
-      let dragging = false, ghost = null, startX, startY;
+      let dragging = false, ghost = null;
+      let offsetX = 0, offsetY = 0; // 紀錄點擊點與卡片左上角的相對距離
       
       const onDown = (e) => {
+        // 如果是點擊按鈕等元素不觸發拖曳
+        if (e.target.tagName.toLowerCase() === 'button') return;
+        
         dragging = true;
         const pt = getPoint(e);
-        startX = pt.x; startY = pt.y;
         const rect = card.getBoundingClientRect();
+        
+        // 【優化點】精準計算滑鼠/手指在卡片上的相對座標 (考量了 stage 的縮放)
+        offsetX = pt.x - rect.left;
+        offsetY = pt.y - rect.top;
         
         // 建立分身 (Ghost)
         ghost = card.cloneNode(true);
         ghost.style.position = 'fixed';
-        ghost.style.left = pt.x + 'px';
-        ghost.style.top = pt.y + 'px';
+        // 套用精準偏移量，讓卡片從被點擊的地方直接浮起，不會瞬間跳動
+        ghost.style.left = (pt.x - offsetX) + 'px';
+        ghost.style.top = (pt.y - offsetY) + 'px';
         ghost.style.width = rect.width + 'px';
         ghost.style.height = rect.height + 'px';
         ghost.classList.add('dragging', 'ring-4', 'ring-fuchsia-400');
@@ -348,18 +396,20 @@
         
         card.style.opacity = '0.3';
         
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('touchmove', onMove, {passive:false});
-        window.addEventListener('mouseup', onUp, { once:true });
-        window.addEventListener('touchend', onUp, { once:true });
+        // 加入監聽
+        window.addEventListener('mousemove', onMove, {passive: false});
+        window.addEventListener('touchmove', onMove, {passive: false});
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchend', onUp);
       };
 
       const onMove = (e) => {
         if (!dragging || !ghost) return;
-        e.preventDefault();
+        e.preventDefault(); // 防止手機滾動
         const pt = getPoint(e);
-        ghost.style.left = pt.x + 'px';
-        ghost.style.top = pt.y + 'px';
+        // 更新座標，扣除 offset
+        ghost.style.left = (pt.x - offsetX) + 'px';
+        ghost.style.top = (pt.y - offsetY) + 'px';
       };
 
       const onUp = (e) => {
@@ -367,7 +417,12 @@
         dragging = false;
         const pt = getPoint(e);
         
-        // 判斷是否放在分類區上
+        // 移除監聽器，防止效能與記憶體問題
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('touchend', onUp);
+        
         const zone = getZoneUnderPoint(pt.x, pt.y);
         
         if (zone) {
@@ -377,9 +432,10 @@
             state.score += 10;
             state.locked[item.id] = true;
             state.placements[item.id] = zoneId;
-            placeItemInZone(item, zoneId);
-            celebrateAt(pt.x, pt.y); // 放彩帶
-            card.remove(); // 移除卡片
+            updateScoreUI();
+            placeItemInZone(item, zoneId, true);
+            celebrateAt(pt.x, pt.y); // 放小彩帶
+            card.remove(); // 從下方移除
             checkFinish();
           } else {
             // 答錯
@@ -387,16 +443,16 @@
             shakeCard(card);
           }
         } else {
-          // 放開在空白處
+          // 放開在空白處，原地抖動提示
           shakeCard(card);
         }
 
-        if (ghost) ghost.remove();
+        if (ghost) {
+          ghost.remove();
+          ghost = null;
+        }
         card.style.opacity = '1';
         saveState();
-        
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('touchmove', onMove);
       };
 
       card.addEventListener('mousedown', onDown);
@@ -404,23 +460,47 @@
     }
 
     // 輔助函式
-    function getPoint(e) { return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
+    function getPoint(e) { 
+      return (e.touches && e.touches.length > 0) 
+        ? {x: e.touches[0].clientX, y: e.touches[0].clientY} 
+        : (e.changedTouches && e.changedTouches.length > 0) // 支援 touchend 抓取最後位置
+          ? {x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY}
+          : {x: e.clientX, y: e.clientY}; 
+    }
+    
     function getZoneUnderPoint(x, y) {
       return $$('.zone').find(z => {
         const r = z.getBoundingClientRect();
         return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
       });
     }
+    
     function shakeCard(card) {
       card.classList.remove('wrong-anim');
-      void card.offsetWidth; // 重置動畫
+      void card.offsetWidth; // 重置動畫 reflow
       card.classList.add('wrong-anim');
     }
+    
     function showToast(msg) {
       const t = $('#toast');
       t.textContent = msg;
       t.classList.remove('hidden');
-      setTimeout(() => t.classList.add('hidden'), 1500);
+      t.style.transform = 'translate(-50%, 20px)';
+      t.style.opacity = '0';
+      
+      requestAnimationFrame(() => {
+        t.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        t.style.transform = 'translate(-50%, 0)';
+        t.style.opacity = '1';
+      });
+
+      // 避免重複計時
+      if(t.hideTimeout) clearTimeout(t.hideTimeout);
+      t.hideTimeout = setTimeout(() => {
+        t.style.transform = 'translate(-50%, -20px)';
+        t.style.opacity = '0';
+        setTimeout(() => t.classList.add('hidden'), 300);
+      }, 1500);
     }
 
     // ===== 5. 計時器與完成 =====
@@ -430,7 +510,11 @@
       if (!state.timerStart) state.timerStart = Date.now() - state.elapsed;
       timerInt = setInterval(() => { $('#timer').textContent = formatTime(getElapsed()); }, 500);
     }
-    function stopTimer() { clearInterval(timerInt); timerInt = null; state.elapsed = getElapsed(); }
+    function stopTimer() { 
+      if(timerInt) clearInterval(timerInt); 
+      timerInt = null; 
+      if(state.timerStart) state.elapsed = getElapsed(); 
+    }
     function getElapsed() { return state.timerStart ? Date.now() - state.timerStart : state.elapsed; }
     function formatTime(ms) {
       const sec = Math.floor(ms/1000);
@@ -453,6 +537,7 @@
       state = structuredClone(defaultState);
       stopTimer();
       $('#timer').textContent = '00:00';
+      $('#score').textContent = '0';
       $('#finishModal').classList.add('hidden');
       renderPlay();
       startTimer();
@@ -465,7 +550,7 @@
       const map = { 'S':['text-xl','text-xl'], 'M':['text-2xl','text-3xl'], 'L':['text-3xl','text-4xl'] };
       const [itemCls, titleCls] = map[size];
       
-      $$('.item-name').forEach(e => { e.className = `item-name font-extrabold text-slate-800 ${itemCls}`; });
+      $$('.item-name').forEach(e => { e.className = `item-name font-extrabold text-slate-800 pointer-events-none ${itemCls}`; });
       $$('.zone-title').forEach(e => { e.className = `zone-title font-extrabold text-slate-800 leading-tight ${titleCls}`; });
       
       $$('.size-btn').forEach(b => {
@@ -486,20 +571,19 @@
       list.innerHTML = '';
       config.zones.forEach(z => {
         const div = document.createElement('div');
-        div.className = 'flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm';
+        div.className = 'flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm transition-shadow hover:shadow-md';
         div.innerHTML = `
-          <img src="${z.imageData}" class="w-16 h-16 rounded object-cover bg-gray-100">
-          <div class="flex-1"><input value="${z.name}" class="z-name w-full border rounded p-1 font-bold"></div>
-          <div class="flex flex-col gap-1">
-             <label class="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded cursor-pointer text-center">換圖<input type="file" class="hidden z-img" accept="image/*"></label>
-             <button class="z-del text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded">刪除</button>
+          <img src="${z.imageData}" class="w-16 h-16 rounded object-cover bg-gray-100 shrink-0 border">
+          <div class="flex-1"><input value="${z.name}" class="z-name w-full border border-slate-200 focus:border-sky-400 outline-none rounded p-2 font-bold transition-colors"></div>
+          <div class="flex flex-col gap-2">
+             <label class="text-xs bg-sky-100 text-sky-700 hover:bg-sky-200 px-3 py-1.5 rounded cursor-pointer text-center font-bold transition-colors">換圖<input type="file" class="hidden z-img" accept="image/*"></label>
+             <button class="z-del text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 px-3 py-1.5 rounded font-bold transition-colors">刪除</button>
           </div>
         `;
-        // 綁定事件
         div.querySelector('.z-name').oninput = (e) => { z.name = e.target.value; saveConfig(); };
         div.querySelector('.z-img').onchange = (e) => loadImageFile(e.target, d => { z.imageData = d; saveConfig(); renderCMSZones(); });
         div.querySelector('.z-del').onclick = () => {
-          if(confirm('刪除此分類？')) {
+          if(confirm(`確定刪除分類「${z.name}」？這可能會影響相關項目。`)) {
              config.zones = config.zones.filter(x => x.id !== z.id);
              saveConfig(); renderCMS();
           }
@@ -513,35 +597,33 @@
       list.innerHTML = '';
       config.items.forEach(it => {
         const div = document.createElement('div');
-        div.className = 'flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm';
+        div.className = 'flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm transition-shadow hover:shadow-md';
         const opts = config.zones.map(z => `<option value="${z.id}" ${z.id===it.correctZoneId?'selected':''}>${z.name}</option>`).join('');
         
         div.innerHTML = `
-          <img src="${it.imageData}" class="w-16 h-16 rounded object-cover bg-gray-100">
+          <img src="${it.imageData}" class="w-16 h-16 rounded object-cover bg-gray-100 shrink-0 border">
           <div class="flex-1 grid gap-2">
-            <input value="${it.name}" class="i-name w-full border rounded p-1 font-bold">
-            <select class="i-zone w-full border rounded p-1 text-sm bg-slate-50">${opts}</select>
+            <input value="${it.name}" class="i-name w-full border border-slate-200 focus:border-fuchsia-400 outline-none rounded p-1.5 font-bold transition-colors">
+            <select class="i-zone w-full border border-slate-200 outline-none rounded p-1.5 text-sm font-bold text-slate-700 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">${opts}</select>
           </div>
-          <div class="flex flex-col gap-1">
-             <label class="text-xs bg-fuchsia-100 text-fuchsia-700 px-2 py-1 rounded cursor-pointer text-center">換圖<input type="file" class="hidden i-img" accept="image/*"></label>
-             <button class="i-del text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded">刪除</button>
+          <div class="flex flex-col gap-2">
+             <label class="text-xs bg-fuchsia-100 text-fuchsia-700 hover:bg-fuchsia-200 px-3 py-1.5 rounded cursor-pointer text-center font-bold transition-colors">換圖<input type="file" class="hidden i-img" accept="image/*"></label>
+             <button class="i-del text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 px-3 py-1.5 rounded font-bold transition-colors">刪除</button>
           </div>
         `;
-        // 綁定事件
         div.querySelector('.i-name').oninput = (e) => { it.name = e.target.value; saveConfig(); };
         div.querySelector('.i-zone').onchange = (e) => { it.correctZoneId = e.target.value; saveConfig(); };
         div.querySelector('.i-img').onchange = (e) => loadImageFile(e.target, d => { it.imageData = d; saveConfig(); renderCMSItems(); });
         div.querySelector('.i-del').onclick = () => {
-           config.items = config.items.filter(x => x.id !== it.id);
-           saveConfig(); renderCMSItems();
+           if(confirm(`確定刪除項目「${it.name}」？`)) {
+             config.items = config.items.filter(x => x.id !== it.id);
+             saveConfig(); renderCMSItems();
+           }
         };
         list.appendChild(div);
       });
     }
 
-    // === 重要修正：區分圖片讀取與文字讀取 ===
-    
-    // 1. 讀取圖片用 (轉為 DataURL Base64)
     function loadImageFile(input, cb) {
       const f = input.files[0];
       if(!f) return;
@@ -550,7 +632,6 @@
       fr.readAsDataURL(f);
     }
 
-    // 2. 讀取設定檔用 (轉為純文字 Text)
     function loadTextFile(input, cb) {
       const f = input.files[0];
       if(!f) return;
@@ -566,11 +647,20 @@
 
     // ===== 8. 初始化與彩帶 =====
     function celebrateAt(x, y) {
-      for(let i=0; i<20; i++) {
+      const container = $('#confetti');
+      for(let i=0; i<15; i++) {
         const d = document.createElement('div');
-        d.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:10px;height:10px;background:hsl(${Math.random()*360},70%,50%);border-radius:50%;pointer-events:none;`;
-        d.animate([{transform:'translate(0,0)', opacity:1}, {transform:`translate(${Math.random()*200-100}px, -200px)`, opacity:0}], {duration: 1000, easing:'ease-out'}).onfinish = () => d.remove();
-        document.body.appendChild(d);
+        d.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:12px;height:12px;background:hsl(${Math.random()*360},70%,50%);border-radius:2px;pointer-events:none;`;
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 50 + Math.random() * 100;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity - 150; // 偏向上方
+        
+        d.animate([
+          {transform:'translate(0,0) rotate(0deg)', opacity:1}, 
+          {transform:`translate(${tx}px, ${ty}px) rotate(${Math.random()*360+180}deg)`, opacity:0}
+        ], {duration: 800 + Math.random()*400, easing:'ease-out'}).onfinish = () => d.remove();
+        container.appendChild(d);
       }
     }
 
@@ -612,7 +702,7 @@
       $('#addZone').onclick = () => { config.zones.push({id:uid(), name:'新分類', imageData:''}); saveConfig(); renderCMSZones(); };
       $('#addItem').onclick = () => { config.items.push({id:uid(), name:'新項目', imageData:'', correctZoneId:config.zones[0]?.id}); saveConfig(); renderCMSItems(); };
       
-      $('#clearAllBtn').onclick = () => { if(confirm('確定清除？')) { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_STATE); location.reload(); }};
+      $('#clearAllBtn').onclick = () => { if(confirm('⚠️ 確定清除所有設定回到預設值？這將無法復原！')) { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_STATE); location.reload(); }};
       
       $('#exportBtn').onclick = () => {
          const a = document.createElement('a');
@@ -620,18 +710,17 @@
          a.download = 'wtkw_backup.json'; a.click();
       };
       
-      // === 修正：這裡改用 loadTextFile ===
       $('#importInput').onchange = (e) => loadTextFile(e.target, txt => {
          try { 
            config = JSON.parse(txt); 
            saveConfig(); 
-           alert('匯入成功'); 
+           alert('✅ 匯入成功'); 
            renderCMS(); 
-         } catch(e){
-           console.error(e);
-           alert('格式錯誤：這不是有效的設定檔');
+         } catch(err){
+           console.error(err);
+           alert('❌ 格式錯誤：這不是有效的設定檔');
          }
-         e.target.value = ''; // 清空輸入框，允許重複匯入同一個檔案
+         e.target.value = ''; // 清空輸入框
       });
 
       // 啟動
