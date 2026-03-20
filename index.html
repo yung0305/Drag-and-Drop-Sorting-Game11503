@@ -2,48 +2,45 @@
 <html lang="zh-Hant">
  <head>
   <meta charset="UTF-8">
-  <title>【文特知識王】— 16:9 劇院版</title>
+  <title>【文特知識王】— 全螢幕劇院版</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* === 核心樣式設定 === */
     html, body {
       height: 100%;
-      background: #111; /* 深色背景，讓遊戲像電影一樣 */
+      background: #111;
       overflow: hidden;
       margin: 0;
       padding: 0;
       font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-      user-select: none; /* 防止拖曳時選取到文字 */
+      user-select: none;
       -webkit-user-select: none;
     }
     
-    /* 1920×1080 舞台設定 */
+    /* 舞台設定：改為純滿版，不強制縮放 */
     #stage { 
-      transform-origin: center center; 
       overflow: hidden; 
       box-shadow: 0 0 80px rgba(0,0,0,0.8);
-      will-change: transform;
     }
 
-    /* 拖曳中的卡片特效 (優化：移除 translate 負值，改用滑鼠點擊座標計算 offset，手感更佳) */
+    /* 拖曳中的卡片特效 */
     .dragging { 
       pointer-events: none; 
       transform: scale(1.08) rotate(-4deg); 
       transform-origin: center;
-      transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1); /* 更 Q 彈的浮現動畫 */
+      transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 9999; 
       opacity: 0.95; 
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
 
-    /* 項目卡片基本樣式 (優化：加入 touch-action 防止手機端拖曳時捲動頁面) */
     .item-card {
       touch-action: none;
       will-change: transform;
     }
     
-    /* 答對動畫：小圖示 */
+    /* 動畫區 */
     @keyframes correctPop { 
       0%{transform:scale(0.8); opacity: 0.5;} 
       50%{transform:scale(1.15);} 
@@ -51,7 +48,6 @@
     }
     .correct-anim { animation: correctPop 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     
-    /* 答對動畫：分類區發光 */
     @keyframes zoneGlow {
       0% { box-shadow: 0 0 0 0 rgba(34,197,94,0); border-color: rgba(255,255,255,1); }
       50% { box-shadow: 0 0 40px 10px rgba(34,197,94,0.4); border-color: rgba(34,197,94,0.8); }
@@ -59,7 +55,6 @@
     }
     .zone-glow-anim { animation: zoneGlow 600ms ease-out; }
 
-    /* 答錯抖動動畫 */
     @keyframes wrongShake { 
       0%,100%{transform:translateX(0) rotate(0);} 
       20%{transform:translateX(-12px) rotate(-2deg);} 
@@ -69,7 +64,6 @@
     }
     .wrong-anim { animation: wrongShake 400ms ease-in-out; }
 
-    /* 彩帶動畫 */
     @keyframes confettiFloat { 0%{transform:translateY(0) rotate(0); opacity:1} 100%{transform:translateY(-200px) rotate(360deg); opacity:0} }
 
     /* 捲軸美化 */
@@ -79,124 +73,131 @@
     .pretty-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
   </style>
  </head>
- <body class="antialiased">
+ <body class="antialiased w-screen h-screen">
   
-  <div class="w-screen h-screen flex items-center justify-center">
+  <div id="stage" class="relative w-full h-full bg-gradient-to-br from-sky-200 via-pink-100 to-amber-100">
     
-    <div id="stage" class="relative bg-gradient-to-br from-sky-200 via-pink-100 to-amber-100" style="width:1920px; height:1080px;">
-      
-      <div class="pointer-events-none absolute -top-16 -left-16 w-80 h-80 rounded-full bg-pink-300/30 blur-3xl"></div>
-      <div class="pointer-events-none absolute -bottom-10 -right-10 w-96 h-96 rounded-full bg-sky-300/30 blur-3xl"></div>
+    <div class="pointer-events-none absolute -top-16 -left-16 w-80 h-80 rounded-full bg-pink-300/30 blur-3xl z-0"></div>
+    <div class="pointer-events-none absolute -bottom-10 -right-10 w-96 h-96 rounded-full bg-sky-300/30 blur-3xl z-0"></div>
 
-      <div class="absolute top-0 left-0 right-0 h-24 flex items-center justify-between px-10 z-50">
-       <div class="flex items-center gap-4">
-        <div class="text-white/90 bg-gradient-to-r from-fuchsia-500 to-rose-500 px-5 py-2 rounded-2xl shadow-lg text-3xl font-extrabold tracking-wide">
-          【文特知識王】
-        </div>
-        <div id="scoreBox" class="play-only text-fuchsia-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold transition-all">
-          分數：<span id="score">0</span>
-        </div>
-        <div id="timerBox" class="play-only text-sky-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold">
-          時間：<span id="timer">00:00</span>
-        </div>
-        <div id="saveIndicator" class="admin-only hidden text-emerald-700 bg-emerald-100 px-4 py-2 rounded-xl text-xl font-bold opacity-0 transition-opacity">
-          已儲存
-        </div>
-       </div>
-       
-       <div class="flex items-center gap-2 bg-white/80 backdrop-blur rounded-2xl p-1 shadow-lg">
-         <button id="tabPlay" class="px-5 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors" data-active="true"> 🎮 開始遊戲 </button> 
-         <button id="tabAdmin" class="px-5 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors"> ⚙️ 設定後台 </button>
-       </div>
+    <div class="absolute top-0 left-0 right-0 h-24 flex items-center justify-between px-10 z-50">
+     <div class="flex items-center gap-4">
+      <div id="mainTitle" class="text-white/90 bg-gradient-to-r from-fuchsia-500 to-rose-500 px-5 py-2 rounded-2xl shadow-lg text-3xl font-extrabold tracking-wide">
+        【文特知識王】
       </div>
-
-      <div id="toast" class="pointer-events-none hidden absolute top-28 left-1/2 -translate-x-1/2 z-[60] bg-rose-500 text-white text-3xl font-extrabold px-6 py-3 rounded-2xl shadow-2xl transition-all">
-        再試一次！
+      <div id="scoreBox" class="play-only text-fuchsia-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold transition-all">
+        分數：<span id="score">0</span>
       </div>
-
-      <div id="playView" class="absolute inset-0 pt-28 pb-44 px-10">
-       <div class="flex items-center justify-between mb-3">
-        <div class="bg-white/80 backdrop-blur rounded-2xl shadow p-1 flex items-center">
-          <span class="pl-3 pr-2 text-slate-500 font-bold text-lg">文字大小：</span>
-          <button data-size="S" class="size-btn px-4 py-2 rounded-xl text-base font-bold text-slate-700 hover:bg-slate-100 transition-colors">小</button> 
-          <button data-size="M" class="size-btn px-4 py-2 rounded-xl text-lg font-bold text-slate-700 hover:bg-slate-100 transition-colors">中</button> 
-          <button data-size="L" class="size-btn px-4 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 transition-colors">大</button>
-        </div>
-        <button id="resetBtn" class="px-5 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-2xl font-extrabold shadow-lg active:scale-[0.98] transition-transform"> 🔄 重玩 </button>
-       </div>
-       
-       <div id="zonesArea" class="w-full h-[58%] grid grid-cols-3 gap-6"></div>
-
-       <div class="absolute bottom-0 left-0 right-0 h-80 bg-white/70 backdrop-blur border-t border-white/60 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div class="h-full px-8 py-4 overflow-y-auto pretty-scrollbar">
-         <div id="itemsTrayInner" class="flex flex-wrap items-start content-start gap-4 pb-10"></div>
-        </div>
-       </div>
+      <div id="timerBox" class="play-only text-sky-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold">
+        時間：<span id="timer">00:00</span>
       </div>
-
-      <div id="adminView" class="hidden absolute inset-0 pt-28 pb-8 px-10">
-       <div class="w-full h-full grid grid-cols-[280px_1fr] gap-6">
-        <div class="h-full bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow p-4">
-         <div class="text-2xl font-extrabold text-slate-800 mb-3">CMS 控制台</div>
-         <nav class="space-y-2">
-           <button data-admin-section="zones" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold bg-sky-100 text-sky-800 transition-colors">分類區設定</button> 
-           <button data-admin-section="items" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 transition-colors">項目設定</button> 
-           <button data-admin-section="settings" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 transition-colors">備份與還原</button>
-         </nav>
-        </div>
-
-        <div class="h-full bg-white/70 backdrop-blur rounded-2xl border border-white/60 shadow p-5 overflow-y-auto pretty-scrollbar">
-         
-         <section id="cmsZones" class="cms-section">
-          <div class="flex items-center justify-between mb-4">
-           <h2 class="text-3xl font-extrabold text-sky-700">分類區管理</h2>
-           <button id="addZone" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-lg font-bold shadow transition-colors">+ 新增分類</button>
-          </div>
-          <div id="zonesList" class="grid grid-cols-2 gap-4"></div>
-         </section>
-
-         <section id="cmsItems" class="cms-section hidden">
-          <div class="flex items-center justify-between mb-4">
-           <h2 class="text-3xl font-extrabold text-fuchsia-700">項目管理</h2>
-           <button id="addItem" class="px-4 py-2 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-lg font-bold shadow transition-colors">+ 新增項目</button>
-          </div>
-          <div id="itemsList" class="grid grid-cols-2 gap-4"></div>
-         </section>
-
-         <section id="cmsSettings" class="cms-section hidden">
-          <div class="bg-white rounded-2xl border p-6 shadow-sm">
-            <h3 class="text-2xl font-bold text-slate-800 mb-4">資料備份</h3>
-            <div class="flex gap-4">
-              <button id="exportBtn" class="px-5 py-3 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow transition-colors">📥 下載設定檔 (JSON)</button>
-              <label class="px-5 py-3 rounded-xl bg-slate-200 text-slate-700 font-bold hover:bg-slate-300 shadow cursor-pointer transition-colors">
-                📤 匯入設定檔
-                <input id="importInput" type="file" accept=".json,application/json" class="hidden">
-              </label>
-              <button id="clearAllBtn" class="px-5 py-3 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow ml-auto transition-colors">⚠️ 清除所有資料</button>
-            </div>
-            <p class="mt-4 text-slate-500">您可以將設定檔下載備份，換電腦時再匯入即可。</p>
-          </div>
-         </section>
-        </div>
-       </div>
+      <div id="saveIndicator" class="admin-only hidden text-emerald-700 bg-emerald-100 px-4 py-2 rounded-xl text-xl font-bold opacity-0 transition-opacity">
+        已儲存
       </div>
-
-      <div id="finishModal" class="hidden absolute inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center">
-       <div class="bg-white rounded-3xl shadow-2xl p-10 w-[720px] text-center transform transition-transform duration-300 scale-100">
-        <div class="text-5xl font-extrabold text-emerald-600 mb-6">🎉 恭喜過關！</div>
-        <div class="text-3xl text-slate-700 mb-8 font-bold">
-         得分：<span id="finalScore" class="text-fuchsia-600">0</span>　
-         時間：<span id="finalTime" class="text-sky-600">00:00</span>
-        </div>
-        <div class="flex items-center justify-center gap-6">
-          <button id="playAgain" class="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-3xl font-extrabold shadow-lg transition-transform hover:scale-105">再玩一次</button> 
-          <button id="closeModal" class="px-8 py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-2xl font-bold shadow transition-colors">關閉</button>
-        </div>
-       </div>
-      </div>
-
-      <div id="confetti" class="pointer-events-none absolute inset-0 overflow-hidden z-[65]"></div>
+     </div>
+     
+     <div class="flex items-center gap-2 bg-white/80 backdrop-blur rounded-2xl p-1 shadow-lg">
+       <button id="tabPlay" class="px-5 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors" data-active="true"> 🎮 開始遊戲 </button> 
+       <button id="tabAdmin" class="px-5 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors"> ⚙️ 設定後台 </button>
+     </div>
     </div>
+
+    <div id="toast" class="pointer-events-none hidden absolute top-28 left-1/2 -translate-x-1/2 z-[60] bg-rose-500 text-white text-3xl font-extrabold px-6 py-3 rounded-2xl shadow-2xl transition-all">
+      再試一次！
+    </div>
+
+    <div id="playView" class="absolute inset-0 pt-24 flex flex-col z-10">
+      
+      <div class="px-10 pt-4 flex-1 flex flex-col min-h-0">
+        <div class="flex items-center justify-between mb-4 shrink-0">
+          <div class="bg-white/80 backdrop-blur rounded-2xl shadow p-1 flex items-center">
+            <span class="pl-3 pr-2 text-slate-500 font-bold text-lg">文字大小：</span>
+            <button data-size="S" class="size-btn px-4 py-2 rounded-xl text-base font-bold text-slate-700 hover:bg-slate-100 transition-colors">小</button> 
+            <button data-size="M" class="size-btn px-4 py-2 rounded-xl text-lg font-bold text-slate-700 hover:bg-slate-100 transition-colors">中</button> 
+            <button data-size="L" class="size-btn px-4 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 transition-colors">大</button>
+          </div>
+          <button id="resetBtn" class="px-5 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-2xl font-extrabold shadow-lg active:scale-[0.98] transition-transform"> 🔄 重玩 </button>
+        </div>
+        
+        <div id="zonesArea" class="w-full flex-1 min-h-[40%] grid gap-6 mb-6"></div>
+      </div>
+
+      <div class="h-[45%] min-h-[300px] bg-white/70 backdrop-blur border-t border-white/60 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] relative shrink-0">
+        <div class="absolute inset-0 px-10 py-6 overflow-y-auto pretty-scrollbar">
+          <div id="itemsTrayInner" class="flex flex-wrap items-start content-start gap-4 pb-10"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminView" class="hidden absolute inset-0 pt-28 pb-8 px-10 z-20">
+     <div class="w-full h-full grid grid-cols-[280px_1fr] gap-6">
+      <div class="h-full bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow p-4">
+       <div class="text-2xl font-extrabold text-slate-800 mb-3">CMS 控制台</div>
+       <nav class="space-y-2">
+         <button data-admin-section="zones" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold bg-sky-100 text-sky-800 transition-colors">分類區設定</button> 
+         <button data-admin-section="items" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 transition-colors">項目設定</button> 
+         <button data-admin-section="settings" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 transition-colors">系統與備份</button>
+       </nav>
+      </div>
+
+      <div class="h-full bg-white/70 backdrop-blur rounded-2xl border border-white/60 shadow p-5 overflow-y-auto pretty-scrollbar">
+       <section id="cmsZones" class="cms-section">
+        <div class="flex items-center justify-between mb-4">
+         <h2 class="text-3xl font-extrabold text-sky-700">分類區管理</h2>
+         <button id="addZone" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-lg font-bold shadow transition-colors">+ 新增分類</button>
+        </div>
+        <div id="zonesList" class="grid grid-cols-2 gap-4"></div>
+        </section>
+
+        <section id="cmsItems" class="cms-section hidden">
+         <div class="flex items-center justify-between mb-4">
+          <h2 class="text-3xl font-extrabold text-fuchsia-700">項目管理</h2>
+          <button id="addItem" class="px-4 py-2 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-lg font-bold shadow transition-colors">+ 新增項目</button>
+         </div>
+         <div id="itemsList" class="grid grid-cols-2 gap-4"></div>
+        </section>
+
+        <section id="cmsSettings" class="cms-section hidden space-y-6">
+         <div class="bg-white rounded-2xl border p-6 shadow-sm">
+           <h3 class="text-2xl font-bold text-slate-800 mb-4">一般設定</h3>
+           <div class="flex items-center gap-4">
+             <label class="text-lg font-bold text-slate-700">遊戲名稱：</label>
+             <input id="titleInput" type="text" class="flex-1 max-w-md border border-slate-300 focus:border-sky-500 outline-none rounded-xl p-3 text-lg font-bold transition-colors">
+           </div>
+         </div>
+
+         <div class="bg-white rounded-2xl border p-6 shadow-sm">
+           <h3 class="text-2xl font-bold text-slate-800 mb-4">資料備份</h3>
+           <div class="flex gap-4">
+             <button id="exportBtn" class="px-5 py-3 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow transition-colors">📥 下載設定檔 (JSON)</button>
+             <label class="px-5 py-3 rounded-xl bg-slate-200 text-slate-700 font-bold hover:bg-slate-300 shadow cursor-pointer transition-colors">
+               📤 匯入設定檔
+               <input id="importInput" type="file" accept=".json,application/json" class="hidden">
+             </label>
+             <button id="clearAllBtn" class="px-5 py-3 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow ml-auto transition-colors">⚠️ 清除所有資料</button>
+           </div>
+           <p class="mt-4 text-slate-500">您可以將設定檔下載備份，換電腦時再匯入即可。</p>
+         </div>
+        </section>
+       </div>
+      </div>
+    </div>
+
+    <div id="finishModal" class="hidden absolute inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center">
+     <div class="bg-white rounded-3xl shadow-2xl p-10 w-[720px] text-center transform transition-transform duration-300 scale-100">
+      <div class="text-5xl font-extrabold text-emerald-600 mb-6">🎉 恭喜過關！</div>
+      <div class="text-3xl text-slate-700 mb-8 font-bold">
+        得分：<span id="finalScore" class="text-fuchsia-600">0</span>　
+        時間：<span id="finalTime" class="text-sky-600">00:00</span>
+      </div>
+      <div class="flex items-center justify-center gap-6">
+        <button id="playAgain" class="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-3xl font-extrabold shadow-lg transition-transform hover:scale-105">再玩一次</button> 
+        <button id="closeModal" class="px-8 py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-2xl font-bold shadow transition-colors">關閉</button>
+      </div>
+     </div>
+    </div>
+
+    <div id="confetti" class="pointer-events-none absolute inset-0 overflow-hidden z-[65]"></div>
   </div>
 
   <script>
@@ -217,6 +218,7 @@
 
     // 預設資料
     const defaultConfig = {
+      gameTitle: '【文特知識王】', // 新增遊戲名稱預設值
       textSize: 'L',
       zones: [
         { id: uid(), name: '水果', imageData: sampleSVG('🍎', '#ff7a7a') },
@@ -250,7 +252,9 @@
       let conf = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
       if (!conf) conf = structuredClone(defaultConfig);
       
-      // 自動修復關聯 (如果是第一次載入)
+      // 相容舊資料，若無遊戲名稱則補上
+      if (conf.gameTitle === undefined) conf.gameTitle = '【文特知識王】';
+      
       conf.items.forEach(it => {
         if (!it.correctZoneId) {
           const z = conf.zones.find(zz => 
@@ -268,21 +272,18 @@
     }
     let { conf: config, st: state } = loadAll();
 
-    // ===== 3. 自動縮放 (16:9) =====
-    function fitStage() {
-      const stage = $("#stage");
-      const targetW = 1920, targetH = 1080;
-      const windowW = window.innerWidth, windowH = window.innerHeight;
-      const scale = Math.min(windowW / targetW, windowH / targetH);
-      stage.style.transform = `scale(${scale})`;
-    }
-    window.addEventListener('resize', fitStage);
 
-    // ===== 4. 遊戲核心邏輯 =====
+    // ===== 3. 遊戲核心邏輯 =====
     
+    function applyGameTitle() {
+      $('#mainTitle').textContent = config.gameTitle;
+      document.title = config.gameTitle + ' — 全螢幕劇院版';
+    }
+
     // 渲染遊戲畫面
     function renderPlay() {
       applyTextSize(config.textSize);
+      applyGameTitle();
       updateScoreUI();
       $('#timer').textContent = formatTime(getElapsed());
 
@@ -290,11 +291,11 @@
       const zonesArea = $('#zonesArea');
       zonesArea.innerHTML = '';
       const cols = Math.max(2, Math.min(3, config.zones.length)); // 最多3欄
-      zonesArea.className = `w-full h-[58%] grid grid-cols-${cols} gap-6`;
+      zonesArea.className = `w-full flex-1 min-h-[40%] grid grid-cols-${cols} gap-6 mb-6`;
 
       config.zones.forEach(z => {
         const el = document.createElement('div');
-        el.className = 'zone bg-white/85 rounded-3xl border-4 border-white shadow-xl p-4 flex flex-col transition-all';
+        el.className = 'zone bg-white/85 rounded-3xl border-4 border-white shadow-xl p-4 flex flex-col transition-all min-h-0 h-full';
         el.dataset.zoneId = z.id;
         el.innerHTML = `
           <div class="flex items-center gap-3">
@@ -303,7 +304,7 @@
             </div>
             <div class="zone-title text-slate-800 font-extrabold leading-tight">${z.name}</div>
           </div>
-          <div class="mt-3 flex-1 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-3 grid grid-cols-3 gap-3 overflow-auto pretty-scrollbar items-start content-start" data-zone-drop></div>
+          <div class="mt-3 flex-1 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-3 grid grid-cols-3 gap-3 overflow-y-auto pretty-scrollbar items-start content-start" data-zone-drop></div>
         `;
         zonesArea.appendChild(el);
       });
@@ -312,12 +313,10 @@
       const trayInner = $('#itemsTrayInner');
       trayInner.innerHTML = '';
       config.items.forEach(item => {
-        // 如果已經答對，直接放到分類區
         if (state.locked[item.id] && state.placements[item.id]) {
           placeItemInZone(item, state.placements[item.id], false);
           return;
         }
-        // 否則顯示在下方托盤
         const card = document.createElement('div');
         card.className = 'item-card bg-white rounded-2xl border-2 border-white shadow-lg px-3 py-2 flex items-center gap-3 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-transform select-none';
         card.style.width = '240px'; 
@@ -335,7 +334,7 @@
       checkFinish();
     }
 
-    // 將小圖示放入分類區 (加上動畫標記區分是否為剛放進去)
+    // 將小圖示放入分類區
     function placeItemInZone(item, zoneId, animate = true) {
       const zone = $(`.zone[data-zone-id="${zoneId}"]`);
       if (!zone) return;
@@ -350,7 +349,6 @@
       `;
       drop.appendChild(mini);
 
-      // 觸發分類區發光動畫
       if(animate) {
          zone.classList.remove('zone-glow-anim');
          void zone.offsetWidth; // trigger reflow
@@ -361,32 +359,27 @@
     function updateScoreUI() {
       const scoreEl = $('#score');
       scoreEl.textContent = state.score;
-      // 分數跳動特效
       scoreEl.parentElement.classList.add('scale-110', 'text-fuchsia-600');
       setTimeout(() => scoreEl.parentElement.classList.remove('scale-110', 'text-fuchsia-600'), 200);
     }
 
-    // 優化後的拖曳功能
+    // 拖曳功能
     function makeDraggable(card, item) {
       let dragging = false, ghost = null;
-      let offsetX = 0, offsetY = 0; // 紀錄點擊點與卡片左上角的相對距離
+      let offsetX = 0, offsetY = 0; 
       
       const onDown = (e) => {
-        // 如果是點擊按鈕等元素不觸發拖曳
         if (e.target.tagName.toLowerCase() === 'button') return;
         
         dragging = true;
         const pt = getPoint(e);
         const rect = card.getBoundingClientRect();
         
-        // 【優化點】精準計算滑鼠/手指在卡片上的相對座標 (考量了 stage 的縮放)
         offsetX = pt.x - rect.left;
         offsetY = pt.y - rect.top;
         
-        // 建立分身 (Ghost)
         ghost = card.cloneNode(true);
         ghost.style.position = 'fixed';
-        // 套用精準偏移量，讓卡片從被點擊的地方直接浮起，不會瞬間跳動
         ghost.style.left = (pt.x - offsetX) + 'px';
         ghost.style.top = (pt.y - offsetY) + 'px';
         ghost.style.width = rect.width + 'px';
@@ -396,7 +389,6 @@
         
         card.style.opacity = '0.3';
         
-        // 加入監聽
         window.addEventListener('mousemove', onMove, {passive: false});
         window.addEventListener('touchmove', onMove, {passive: false});
         window.addEventListener('mouseup', onUp);
@@ -405,9 +397,8 @@
 
       const onMove = (e) => {
         if (!dragging || !ghost) return;
-        e.preventDefault(); // 防止手機滾動
+        e.preventDefault();
         const pt = getPoint(e);
-        // 更新座標，扣除 offset
         ghost.style.left = (pt.x - offsetX) + 'px';
         ghost.style.top = (pt.y - offsetY) + 'px';
       };
@@ -417,7 +408,6 @@
         dragging = false;
         const pt = getPoint(e);
         
-        // 移除監聽器，防止效能與記憶體問題
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('touchmove', onMove);
         window.removeEventListener('mouseup', onUp);
@@ -428,22 +418,19 @@
         if (zone) {
           const zoneId = zone.dataset.zoneId;
           if (item.correctZoneId === zoneId) {
-            // 答對
             state.score += 10;
             state.locked[item.id] = true;
             state.placements[item.id] = zoneId;
             updateScoreUI();
             placeItemInZone(item, zoneId, true);
-            celebrateAt(pt.x, pt.y); // 放小彩帶
-            card.remove(); // 從下方移除
+            celebrateAt(pt.x, pt.y);
+            card.remove(); 
             checkFinish();
           } else {
-            // 答錯
             showToast('再試一次！');
             shakeCard(card);
           }
         } else {
-          // 放開在空白處，原地抖動提示
           shakeCard(card);
         }
 
@@ -459,11 +446,10 @@
       card.addEventListener('touchstart', onDown, {passive:false});
     }
 
-    // 輔助函式
     function getPoint(e) { 
       return (e.touches && e.touches.length > 0) 
         ? {x: e.touches[0].clientX, y: e.touches[0].clientY} 
-        : (e.changedTouches && e.changedTouches.length > 0) // 支援 touchend 抓取最後位置
+        : (e.changedTouches && e.changedTouches.length > 0) 
           ? {x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY}
           : {x: e.clientX, y: e.clientY}; 
     }
@@ -477,7 +463,7 @@
     
     function shakeCard(card) {
       card.classList.remove('wrong-anim');
-      void card.offsetWidth; // 重置動畫 reflow
+      void card.offsetWidth; 
       card.classList.add('wrong-anim');
     }
     
@@ -494,7 +480,6 @@
         t.style.opacity = '1';
       });
 
-      // 避免重複計時
       if(t.hideTimeout) clearTimeout(t.hideTimeout);
       t.hideTimeout = setTimeout(() => {
         t.style.transform = 'translate(-50%, -20px)';
@@ -503,7 +488,7 @@
       }, 1500);
     }
 
-    // ===== 5. 計時器與完成 =====
+    // ===== 4. 計時器與完成 =====
     let timerInt = null;
     function startTimer() {
       if (timerInt) return;
@@ -544,7 +529,7 @@
       saveState();
     }
 
-    // ===== 6. 文字大小控制 =====
+    // ===== 5. 文字大小控制 =====
     function applyTextSize(size) {
       config.textSize = size;
       const map = { 'S':['text-xl','text-xl'], 'M':['text-2xl','text-3xl'], 'L':['text-3xl','text-4xl'] };
@@ -560,10 +545,11 @@
       saveConfig();
     }
 
-    // ===== 7. CMS 後台邏輯 =====
+    // ===== 6. CMS 後台邏輯 =====
     function renderCMS() {
       renderCMSZones();
       renderCMSItems();
+      $('#titleInput').value = config.gameTitle; // 確保每次進後台載入最新標題
     }
 
     function renderCMSZones() {
@@ -645,7 +631,7 @@
       setTimeout(() => $('#saveIndicator').style.opacity = '0', 800);
     }
 
-    // ===== 8. 初始化與彩帶 =====
+    // ===== 7. 初始化與彩帶 =====
     function celebrateAt(x, y) {
       const container = $('#confetti');
       for(let i=0; i<15; i++) {
@@ -654,7 +640,7 @@
         const angle = Math.random() * Math.PI * 2;
         const velocity = 50 + Math.random() * 100;
         const tx = Math.cos(angle) * velocity;
-        const ty = Math.sin(angle) * velocity - 150; // 偏向上方
+        const ty = Math.sin(angle) * velocity - 150; 
         
         d.animate([
           {transform:'translate(0,0) rotate(0deg)', opacity:1}, 
@@ -665,6 +651,16 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      // 初始化標題
+      applyGameTitle();
+
+      // 設定標題輸入框連動
+      $('#titleInput').oninput = (e) => {
+        config.gameTitle = e.target.value || '【文特知識王】';
+        applyGameTitle();
+        saveConfig();
+      };
+
       // 介面切換
       $('#tabPlay').onclick = () => {
         state.mode = 'play';
@@ -716,6 +712,7 @@
            saveConfig(); 
            alert('✅ 匯入成功'); 
            renderCMS(); 
+           applyGameTitle(); // 匯入後同步更新標題
          } catch(err){
            console.error(err);
            alert('❌ 格式錯誤：這不是有效的設定檔');
@@ -724,7 +721,6 @@
       });
 
       // 啟動
-      fitStage();
       if(state.mode === 'play') $('#tabPlay').click(); else $('#tabAdmin').click();
     });
   </script>
