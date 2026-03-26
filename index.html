@@ -18,13 +18,11 @@
       -webkit-user-select: none;
     }
     
-    /* 舞台設定：改為純滿版，不強制縮放 */
     #stage { 
       overflow: hidden; 
       box-shadow: 0 0 80px rgba(0,0,0,0.8);
     }
 
-    /* 拖曳中的卡片特效 */
     .dragging { 
       pointer-events: none; 
       transform: scale(1.08) rotate(-4deg); 
@@ -35,6 +33,7 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
 
+    /* 拖曳卡片鎖定原生觸控行為，避免與拖曳衝突 */
     .item-card {
       touch-action: none;
       will-change: transform;
@@ -64,10 +63,8 @@
     }
     .wrong-anim { animation: wrongShake 400ms ease-in-out; }
 
-    @keyframes confettiFloat { 0%{transform:translateY(0) rotate(0); opacity:1} 100%{transform:translateY(-200px) rotate(360deg); opacity:0} }
-
     /* 捲軸美化 */
-    .pretty-scrollbar::-webkit-scrollbar { height: 10px; width: 10px; }
+    .pretty-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
     .pretty-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 999px; }
     .pretty-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 999px; }
     .pretty-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
@@ -75,124 +72,129 @@
  </head>
  <body class="antialiased w-screen h-screen">
   
-  <div id="stage" class="relative w-full h-full bg-gradient-to-br from-sky-200 via-pink-100 to-amber-100">
+  <div id="stage" class="relative w-full h-full bg-gradient-to-br from-sky-200 via-pink-100 to-amber-100 flex flex-col">
     
     <div class="pointer-events-none absolute -top-16 -left-16 w-80 h-80 rounded-full bg-pink-300/30 blur-3xl z-0"></div>
     <div class="pointer-events-none absolute -bottom-10 -right-10 w-96 h-96 rounded-full bg-sky-300/30 blur-3xl z-0"></div>
 
-    <div class="absolute top-0 left-0 right-0 h-24 flex items-center justify-between px-10 z-50">
-     <div class="flex items-center gap-4">
-      <div id="mainTitle" class="text-white/90 bg-gradient-to-r from-fuchsia-500 to-rose-500 px-5 py-2 rounded-2xl shadow-lg text-3xl font-extrabold tracking-wide">
+    <div class="h-16 md:h-24 flex items-center justify-between px-3 md:px-10 z-50 shrink-0">
+     <div class="flex items-center gap-2 md:gap-4 w-full md:w-auto overflow-hidden">
+      <div id="mainTitle" class="text-white/90 bg-gradient-to-r from-fuchsia-500 to-rose-500 px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-2xl shadow-lg text-base md:text-3xl font-extrabold tracking-wide truncate max-w-[140px] sm:max-w-xs md:max-w-none">
         【文特知識王】
       </div>
-      <div id="scoreBox" class="play-only text-fuchsia-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold transition-all">
+      <div id="scoreBox" class="play-only text-fuchsia-700 bg-white/80 backdrop-blur px-2 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow text-sm md:text-2xl font-bold transition-all shrink-0">
         分數：<span id="score">0</span>
       </div>
-      <div id="timerBox" class="play-only text-sky-700 bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow text-2xl font-bold">
+      <div id="timerBox" class="play-only text-sky-700 bg-white/80 backdrop-blur px-2 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow text-sm md:text-2xl font-bold shrink-0">
         時間：<span id="timer">00:00</span>
       </div>
-      <div id="saveIndicator" class="admin-only hidden text-emerald-700 bg-emerald-100 px-4 py-2 rounded-xl text-xl font-bold opacity-0 transition-opacity">
+      <div id="saveIndicator" class="admin-only hidden text-emerald-700 bg-emerald-100 px-2 py-1 md:px-4 md:py-2 rounded-lg md:rounded-xl text-sm md:text-xl font-bold opacity-0 transition-opacity">
         已儲存
       </div>
      </div>
      
-     <div class="flex items-center gap-2 bg-white/80 backdrop-blur rounded-2xl p-1 shadow-lg">
-       <button id="tabPlay" class="px-5 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors" data-active="true"> 🎮 開始遊戲 </button> 
-       <button id="tabAdmin" class="px-5 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors"> ⚙️ 設定後台 </button>
+     <div class="flex items-center gap-1 md:gap-2 bg-white/80 backdrop-blur rounded-lg md:rounded-2xl p-1 shadow-lg shrink-0 ml-2">
+       <button id="tabPlay" class="px-3 py-1.5 md:px-5 md:py-2 rounded-md md:rounded-xl text-sm md:text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors" data-active="true">
+         🎮 <span class="hidden sm:inline">開始遊戲</span>
+       </button> 
+       <button id="tabAdmin" class="px-3 py-1.5 md:px-5 md:py-2 rounded-md md:rounded-xl text-sm md:text-xl font-extrabold text-slate-700 hover:bg-slate-100 data-[active=true]:bg-slate-900 data-[active=true]:text-white transition-colors">
+         ⚙️ <span class="hidden sm:inline">設定後台</span>
+       </button>
      </div>
     </div>
 
-    <div id="toast" class="pointer-events-none hidden absolute top-28 left-1/2 -translate-x-1/2 z-[60] bg-rose-500 text-white text-3xl font-extrabold px-6 py-3 rounded-2xl shadow-2xl transition-all">
+    <div id="toast" class="pointer-events-none hidden fixed top-20 md:top-28 left-1/2 -translate-x-1/2 z-[60] bg-rose-500 text-white text-xl md:text-3xl font-extrabold px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl shadow-2xl transition-all">
       再試一次！
     </div>
 
-    <div id="playView" class="absolute inset-0 pt-24 flex flex-col z-10">
+    <div id="playView" class="flex-1 flex flex-col z-10 min-h-0 w-full relative">
       
-      <div class="px-10 pt-4 flex-1 flex flex-col min-h-0">
-        <div class="flex items-center justify-between mb-4 shrink-0">
-          <div class="bg-white/80 backdrop-blur rounded-2xl shadow p-1 flex items-center">
-            <span class="pl-3 pr-2 text-slate-500 font-bold text-lg">文字大小：</span>
-            <button data-size="S" class="size-btn px-4 py-2 rounded-xl text-base font-bold text-slate-700 hover:bg-slate-100 transition-colors">小</button> 
-            <button data-size="M" class="size-btn px-4 py-2 rounded-xl text-lg font-bold text-slate-700 hover:bg-slate-100 transition-colors">中</button> 
-            <button data-size="L" class="size-btn px-4 py-2 rounded-xl text-xl font-extrabold text-slate-700 hover:bg-slate-100 transition-colors">大</button>
+      <div class="px-3 md:px-10 pt-2 md:pt-4 flex-1 flex flex-col min-h-0">
+        <div class="flex items-center justify-between mb-2 md:mb-4 shrink-0">
+          <div class="bg-white/80 backdrop-blur rounded-xl md:rounded-2xl shadow p-1 flex items-center">
+            <span class="pl-2 pr-1 md:pl-3 md:pr-2 text-slate-500 font-bold text-sm md:text-lg">文字：</span>
+            <button data-size="S" class="size-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-sm md:text-base font-bold text-slate-700 hover:bg-slate-100 transition-colors">小</button> 
+            <button data-size="M" class="size-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-base md:text-lg font-bold text-slate-700 hover:bg-slate-100 transition-colors">中</button> 
+            <button data-size="L" class="size-btn px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-lg md:text-xl font-extrabold text-slate-700 hover:bg-slate-100 transition-colors">大</button>
           </div>
-          <button id="resetBtn" class="px-5 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-2xl font-extrabold shadow-lg active:scale-[0.98] transition-transform"> 🔄 重玩 </button>
+          <button id="resetBtn" class="px-4 py-1.5 md:px-5 md:py-2 rounded-xl md:rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-base md:text-2xl font-extrabold shadow-lg active:scale-[0.98] transition-transform"> 🔄 重玩 </button>
         </div>
         
-        <div id="zonesArea" class="w-full flex-1 min-h-[40%] grid gap-6 mb-6"></div>
+        <div id="zonesArea" class="w-full flex-1 min-h-0 grid gap-3 md:gap-6 mb-3 md:mb-6"></div>
       </div>
 
-      <div class="h-[45%] min-h-[300px] bg-white/70 backdrop-blur border-t border-white/60 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] relative shrink-0">
-        <div class="absolute inset-0 px-10 py-6 overflow-y-auto pretty-scrollbar">
-          <div id="itemsTrayInner" class="flex flex-wrap items-start content-start gap-4 pb-10"></div>
+      <div class="h-[40%] md:h-[45%] min-h-[160px] md:min-h-[300px] bg-white/70 backdrop-blur border-t border-white/60 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] relative shrink-0">
+        <div class="absolute inset-0 px-4 py-4 md:px-10 md:py-6 overflow-y-auto overflow-x-hidden pretty-scrollbar">
+          <div id="itemsTrayInner" class="flex flex-wrap items-start justify-center md:justify-start content-start gap-3 md:gap-4 pb-16 md:pb-10"></div>
         </div>
       </div>
     </div>
 
-    <div id="adminView" class="hidden absolute inset-0 pt-28 pb-8 px-10 z-20">
-     <div class="w-full h-full grid grid-cols-[280px_1fr] gap-6">
-      <div class="h-full bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow p-4">
-       <div class="text-2xl font-extrabold text-slate-800 mb-3">CMS 控制台</div>
-       <nav class="space-y-2">
-         <button data-admin-section="zones" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold bg-sky-100 text-sky-800 transition-colors">分類區設定</button> 
-         <button data-admin-section="items" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 transition-colors">項目設定</button> 
-         <button data-admin-section="settings" class="admin-nav w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 transition-colors">系統與備份</button>
+    <div id="adminView" class="hidden flex-1 z-20 overflow-hidden w-full relative">
+     <div class="absolute inset-0 px-3 md:px-10 py-4 md:py-8 w-full h-full flex flex-col md:grid md:grid-cols-[280px_1fr] gap-4 md:gap-6 overflow-hidden">
+      
+      <div class="shrink-0 md:h-full bg-white/80 backdrop-blur rounded-xl md:rounded-2xl border border-white/60 shadow p-3 md:p-4 overflow-x-auto flex flex-row md:flex-col gap-2 md:gap-0">
+       <div class="hidden md:block text-2xl font-extrabold text-slate-800 mb-3">CMS 控制台</div>
+       <nav class="flex md:block w-full gap-2 md:space-y-2">
+         <button data-admin-section="zones" class="admin-nav whitespace-nowrap text-sm md:text-base w-full text-center md:text-left px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-bold bg-sky-100 text-sky-800 transition-colors">分類設定</button> 
+         <button data-admin-section="items" class="admin-nav whitespace-nowrap text-sm md:text-base w-full text-center md:text-left px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-bold hover:bg-slate-100 transition-colors">項目設定</button> 
+         <button data-admin-section="settings" class="admin-nav whitespace-nowrap text-sm md:text-base w-full text-center md:text-left px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-bold hover:bg-slate-100 transition-colors">系統備份</button>
        </nav>
       </div>
 
-      <div class="h-full bg-white/70 backdrop-blur rounded-2xl border border-white/60 shadow p-5 overflow-y-auto pretty-scrollbar">
+      <div class="flex-1 md:h-full bg-white/70 backdrop-blur rounded-xl md:rounded-2xl border border-white/60 shadow p-4 md:p-5 overflow-y-auto pretty-scrollbar">
        <section id="cmsZones" class="cms-section">
         <div class="flex items-center justify-between mb-4">
-         <h2 class="text-3xl font-extrabold text-sky-700">分類區管理</h2>
-         <button id="addZone" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-lg font-bold shadow transition-colors">+ 新增分類</button>
+         <h2 class="text-xl md:text-3xl font-extrabold text-sky-700">分類區管理</h2>
+         <button id="addZone" class="px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm md:text-lg font-bold shadow transition-colors">+ 新增分類</button>
         </div>
-        <div id="zonesList" class="grid grid-cols-2 gap-4"></div>
+        <div id="zonesList" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
         </section>
 
         <section id="cmsItems" class="cms-section hidden">
          <div class="flex items-center justify-between mb-4">
-          <h2 class="text-3xl font-extrabold text-fuchsia-700">項目管理</h2>
-          <button id="addItem" class="px-4 py-2 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-lg font-bold shadow transition-colors">+ 新增項目</button>
+          <h2 class="text-xl md:text-3xl font-extrabold text-fuchsia-700">項目管理</h2>
+          <button id="addItem" class="px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-fuchsia-500 hover:bg-fuchsia-600 text-white text-sm md:text-lg font-bold shadow transition-colors">+ 新增項目</button>
          </div>
-         <div id="itemsList" class="grid grid-cols-2 gap-4"></div>
+         <div id="itemsList" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
         </section>
 
-        <section id="cmsSettings" class="cms-section hidden space-y-6">
-         <div class="bg-white rounded-2xl border p-6 shadow-sm">
-           <h3 class="text-2xl font-bold text-slate-800 mb-4">一般設定</h3>
-           <div class="flex items-center gap-4">
-             <label class="text-lg font-bold text-slate-700">遊戲名稱：</label>
-             <input id="titleInput" type="text" class="flex-1 max-w-md border border-slate-300 focus:border-sky-500 outline-none rounded-xl p-3 text-lg font-bold transition-colors">
+        <section id="cmsSettings" class="cms-section hidden space-y-4 md:space-y-6">
+         <div class="bg-white rounded-xl md:rounded-2xl border p-4 md:p-6 shadow-sm">
+           <h3 class="text-lg md:text-2xl font-bold text-slate-800 mb-4">一般設定</h3>
+           <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+             <label class="text-base md:text-lg font-bold text-slate-700 shrink-0">遊戲名稱：</label>
+             <input id="titleInput" type="text" class="flex-1 max-w-md border border-slate-300 focus:border-sky-500 outline-none rounded-lg md:rounded-xl p-2 md:p-3 text-base md:text-lg font-bold transition-colors">
            </div>
          </div>
 
-         <div class="bg-white rounded-2xl border p-6 shadow-sm">
-           <h3 class="text-2xl font-bold text-slate-800 mb-4">資料備份</h3>
-           <div class="flex gap-4">
-             <button id="exportBtn" class="px-5 py-3 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow transition-colors">📥 下載設定檔 (JSON)</button>
-             <label class="px-5 py-3 rounded-xl bg-slate-200 text-slate-700 font-bold hover:bg-slate-300 shadow cursor-pointer transition-colors">
+         <div class="bg-white rounded-xl md:rounded-2xl border p-4 md:p-6 shadow-sm">
+           <h3 class="text-lg md:text-2xl font-bold text-slate-800 mb-4">資料備份</h3>
+           <div class="flex flex-col md:flex-row gap-3 md:gap-4">
+             <button id="exportBtn" class="px-4 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow transition-colors text-center">📥 下載設定檔</button>
+             <label class="px-4 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl bg-slate-200 text-slate-700 font-bold hover:bg-slate-300 shadow cursor-pointer transition-colors text-center">
                📤 匯入設定檔
                <input id="importInput" type="file" accept=".json,application/json" class="hidden">
              </label>
-             <button id="clearAllBtn" class="px-5 py-3 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow ml-auto transition-colors">⚠️ 清除所有資料</button>
+             <button id="clearAllBtn" class="px-4 py-2 md:px-5 md:py-3 rounded-lg md:rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow md:ml-auto transition-colors text-center">⚠️ 清除所有資料</button>
            </div>
-           <p class="mt-4 text-slate-500">您可以將設定檔下載備份，換電腦時再匯入即可。</p>
+           <p class="mt-3 md:mt-4 text-sm md:text-base text-slate-500">您可以將設定檔下載備份，換電腦時再匯入即可。</p>
          </div>
         </section>
        </div>
       </div>
     </div>
 
-    <div id="finishModal" class="hidden absolute inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center">
-     <div class="bg-white rounded-3xl shadow-2xl p-10 w-[720px] text-center transform transition-transform duration-300 scale-100">
-      <div class="text-5xl font-extrabold text-emerald-600 mb-6">🎉 恭喜過關！</div>
-      <div class="text-3xl text-slate-700 mb-8 font-bold">
+    <div id="finishModal" class="hidden absolute inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+     <div class="bg-white rounded-[2rem] shadow-2xl p-6 md:p-10 w-full max-w-2xl text-center transform transition-transform duration-300 scale-100">
+      <div class="text-3xl md:text-5xl font-extrabold text-emerald-600 mb-4 md:mb-6">🎉 恭喜過關！</div>
+      <div class="text-xl md:text-3xl text-slate-700 mb-6 md:mb-8 font-bold">
         得分：<span id="finalScore" class="text-fuchsia-600">0</span>　
         時間：<span id="finalTime" class="text-sky-600">00:00</span>
       </div>
-      <div class="flex items-center justify-center gap-6">
-        <button id="playAgain" class="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-3xl font-extrabold shadow-lg transition-transform hover:scale-105">再玩一次</button> 
-        <button id="closeModal" class="px-8 py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-2xl font-bold shadow transition-colors">關閉</button>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-6">
+        <button id="playAgain" class="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xl md:text-3xl font-extrabold shadow-lg transition-transform hover:scale-105">再玩一次</button> 
+        <button id="closeModal" class="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-lg md:text-2xl font-bold shadow transition-colors">關閉</button>
       </div>
      </div>
     </div>
@@ -206,19 +208,16 @@
     const $$ = (s, c=document) => Array.from(c.querySelectorAll(s));
     const uid = () => 'id_' + Math.random().toString(36).slice(2, 9);
     
-    // 儲存金鑰 (Local Storage)
     const LS_KEY = 'wtkw_config_v2';
     const LS_STATE = 'wtkw_state_v2';
 
-    // 產生預設圖片 (SVG)
     function sampleSVG(emoji, bg) {
       const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='150'><rect rx='24' ry='24' width='100%' height='100%' fill='${bg}'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='72'>${emoji}</text></svg>`;
       return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
 
-    // 預設資料
     const defaultConfig = {
-      gameTitle: '【文特知識王】', // 新增遊戲名稱預設值
+      gameTitle: '【文特知識王】',
       textSize: 'L',
       zones: [
         { id: uid(), name: '水果', imageData: sampleSVG('🍎', '#ff7a7a') },
@@ -233,18 +232,16 @@
       ]
     };
 
-    // 遊戲狀態
     const defaultState = {
       mode: 'play',
       score: 0,
-      locked: {}, // 已鎖定的項目
-      placements: {}, // 放置位置
+      locked: {},
+      placements: {},
       timerStart: null,
       elapsed: 0,
       finished: false
     };
 
-    // ===== 2. 資料存取 =====
     function saveConfig() { localStorage.setItem(LS_KEY, JSON.stringify(config)); showSavedPulse(); }
     function saveState() { localStorage.setItem(LS_STATE, JSON.stringify(state)); }
     
@@ -252,7 +249,6 @@
       let conf = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
       if (!conf) conf = structuredClone(defaultConfig);
       
-      // 相容舊資料，若無遊戲名稱則補上
       if (conf.gameTitle === undefined) conf.gameTitle = '【文特知識王】';
       
       conf.items.forEach(it => {
@@ -280,36 +276,35 @@
       document.title = config.gameTitle + ' — 全螢幕劇院版';
     }
 
-    // 渲染遊戲畫面
     function renderPlay() {
       applyTextSize(config.textSize);
       applyGameTitle();
       updateScoreUI();
       $('#timer').textContent = formatTime(getElapsed());
 
-      // 渲染分類區
       const zonesArea = $('#zonesArea');
       zonesArea.innerHTML = '';
-      const cols = Math.max(2, Math.min(3, config.zones.length)); // 最多3欄
-      zonesArea.className = `w-full flex-1 min-h-[40%] grid grid-cols-${cols} gap-6 mb-6`;
+      const cols = Math.max(2, Math.min(3, config.zones.length));
+      // 手機板預設 2欄（若分類少則維持），螢幕夠寬才展開至指定欄位
+      zonesArea.className = `w-full flex-1 min-h-0 grid grid-cols-2 md:grid-cols-${cols} gap-3 md:gap-6 mb-2`;
 
       config.zones.forEach(z => {
         const el = document.createElement('div');
-        el.className = 'zone bg-white/85 rounded-3xl border-4 border-white shadow-xl p-4 flex flex-col transition-all min-h-0 h-full';
+        el.className = 'zone bg-white/85 rounded-[1rem] md:rounded-3xl border-2 md:border-4 border-white shadow-lg md:shadow-xl p-2 md:p-4 flex flex-col transition-all min-h-0 h-full';
         el.dataset.zoneId = z.id;
+        // 圖片強制 object-contain 等比縮放防裁切
         el.innerHTML = `
-          <div class="flex items-center gap-3">
-            <div class="w-24 h-20 overflow-hidden rounded-2xl bg-white/70 border shrink-0">
-              <img src="${z.imageData || ''}" class="w-full h-full object-cover"/>
+          <div class="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+            <div class="w-12 h-10 sm:w-16 sm:h-12 md:w-24 md:h-20 overflow-hidden rounded-lg md:rounded-2xl bg-white/70 border shrink-0 flex items-center justify-center p-0.5 md:p-1">
+              <img src="${z.imageData || ''}" class="max-w-full max-h-full object-contain"/>
             </div>
-            <div class="zone-title text-slate-800 font-extrabold leading-tight">${z.name}</div>
+            <div class="zone-title text-slate-800 font-extrabold text-center sm:text-left leading-tight w-full truncate">${z.name}</div>
           </div>
-          <div class="mt-3 flex-1 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-3 grid grid-cols-3 gap-3 overflow-y-auto pretty-scrollbar items-start content-start" data-zone-drop></div>
+          <div class="mt-2 md:mt-3 flex-1 rounded-xl md:rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-1.5 md:p-3 grid grid-cols-2 lg:grid-cols-3 gap-1.5 md:gap-3 overflow-y-auto pretty-scrollbar items-start content-start" data-zone-drop></div>
         `;
         zonesArea.appendChild(el);
       });
 
-      // 渲染項目卡片
       const trayInner = $('#itemsTrayInner');
       trayInner.innerHTML = '';
       config.items.forEach(item => {
@@ -318,14 +313,14 @@
           return;
         }
         const card = document.createElement('div');
-        card.className = 'item-card bg-white rounded-2xl border-2 border-white shadow-lg px-3 py-2 flex items-center gap-3 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-transform select-none';
-        card.style.width = '240px'; 
+        // 卡片尺寸改成彈性縮放，不再固定 240px
+        card.className = 'item-card bg-white rounded-xl md:rounded-2xl border-2 border-white shadow-md hover:shadow-lg p-1.5 md:px-3 md:py-2 flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 md:gap-3 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-transform select-none w-20 sm:w-28 md:w-auto md:min-w-[180px] max-w-[240px]';
         card.dataset.itemId = item.id;
         card.innerHTML = `
-          <div class="w-24 h-20 overflow-hidden rounded-2xl bg-slate-50 border pointer-events-none shrink-0">
-            <img src="${item.imageData || ''}" class="w-full h-full object-cover"/>
+          <div class="w-12 h-10 sm:w-16 sm:h-12 md:w-24 md:h-20 overflow-hidden rounded-lg md:rounded-2xl bg-slate-50 border pointer-events-none shrink-0 flex items-center justify-center p-0.5 md:p-1">
+            <img src="${item.imageData || ''}" class="max-w-full max-h-full object-contain"/>
           </div>
-          <div class="item-name text-slate-800 font-extrabold pointer-events-none">${item.name}</div>
+          <div class="item-name text-slate-800 font-extrabold pointer-events-none text-center sm:text-left leading-tight w-full truncate px-1">${item.name}</div>
         `;
         trayInner.appendChild(card);
         makeDraggable(card, item);
@@ -334,24 +329,23 @@
       checkFinish();
     }
 
-    // 將小圖示放入分類區
     function placeItemInZone(item, zoneId, animate = true) {
       const zone = $(`.zone[data-zone-id="${zoneId}"]`);
       if (!zone) return;
       const drop = zone.querySelector('[data-zone-drop]');
       const mini = document.createElement('div');
-      mini.className = `bg-gradient-to-br from-white to-emerald-50 rounded-2xl border-2 border-emerald-200 shadow p-2 flex items-center gap-2 ${animate ? 'correct-anim' : ''}`;
+      mini.className = `bg-gradient-to-br from-white to-emerald-50 rounded-lg md:rounded-2xl border-2 border-emerald-200 shadow p-1 md:p-2 flex flex-col xl:flex-row items-center justify-center xl:justify-start gap-1 md:gap-2 ${animate ? 'correct-anim' : ''} w-full`;
       mini.innerHTML = `
-        <div class="w-16 h-14 overflow-hidden rounded-xl bg-white border shrink-0">
-          <img src="${item.imageData || ''}" class="w-full h-full object-cover"/>
+        <div class="w-8 h-8 sm:w-10 sm:h-10 md:w-14 md:h-12 overflow-hidden rounded-md md:rounded-xl bg-white border shrink-0 flex items-center justify-center p-0.5">
+          <img src="${item.imageData || ''}" class="max-w-full max-h-full object-contain"/>
         </div>
-        <div class="text-emerald-700 font-extrabold text-sm sm:text-base leading-tight">${item.name}</div>
+        <div class="text-emerald-700 font-extrabold text-[10px] sm:text-xs md:text-sm leading-tight text-center xl:text-left truncate w-full">${item.name}</div>
       `;
       drop.appendChild(mini);
 
       if(animate) {
          zone.classList.remove('zone-glow-anim');
-         void zone.offsetWidth; // trigger reflow
+         void zone.offsetWidth;
          zone.classList.add('zone-glow-anim');
       }
     }
@@ -363,7 +357,6 @@
       setTimeout(() => scoreEl.parentElement.classList.remove('scale-110', 'text-fuchsia-600'), 200);
     }
 
-    // 拖曳功能
     function makeDraggable(card, item) {
       let dragging = false, ghost = null;
       let offsetX = 0, offsetY = 0; 
@@ -529,14 +522,18 @@
       saveState();
     }
 
-    // ===== 5. 文字大小控制 =====
+    // ===== 5. 文字大小控制 (響應式修改) =====
     function applyTextSize(size) {
       config.textSize = size;
-      const map = { 'S':['text-xl','text-xl'], 'M':['text-2xl','text-3xl'], 'L':['text-3xl','text-4xl'] };
+      const map = { 
+        'S':['text-xs sm:text-sm md:text-xl', 'text-sm sm:text-lg md:text-2xl'], 
+        'M':['text-sm sm:text-base md:text-2xl', 'text-base sm:text-xl md:text-3xl'], 
+        'L':['text-base sm:text-lg md:text-3xl', 'text-lg sm:text-2xl md:text-4xl'] 
+      };
       const [itemCls, titleCls] = map[size];
       
-      $$('.item-name').forEach(e => { e.className = `item-name font-extrabold text-slate-800 pointer-events-none ${itemCls}`; });
-      $$('.zone-title').forEach(e => { e.className = `zone-title font-extrabold text-slate-800 leading-tight ${titleCls}`; });
+      $$('.item-name').forEach(e => { e.className = `item-name font-extrabold text-slate-800 pointer-events-none text-center sm:text-left leading-tight w-full truncate px-1 ${itemCls}`; });
+      $$('.zone-title').forEach(e => { e.className = `zone-title font-extrabold text-slate-800 text-center sm:text-left leading-tight w-full truncate ${titleCls}`; });
       
       $$('.size-btn').forEach(b => {
         b.classList.toggle('bg-slate-900', b.dataset.size === size);
@@ -549,7 +546,7 @@
     function renderCMS() {
       renderCMSZones();
       renderCMSItems();
-      $('#titleInput').value = config.gameTitle; // 確保每次進後台載入最新標題
+      $('#titleInput').value = config.gameTitle;
     }
 
     function renderCMSZones() {
@@ -557,13 +554,15 @@
       list.innerHTML = '';
       config.zones.forEach(z => {
         const div = document.createElement('div');
-        div.className = 'flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm transition-shadow hover:shadow-md';
+        div.className = 'flex items-center gap-2 md:gap-3 bg-white p-2 md:p-3 rounded-xl border shadow-sm transition-shadow hover:shadow-md min-w-0';
         div.innerHTML = `
-          <img src="${z.imageData}" class="w-16 h-16 rounded object-cover bg-gray-100 shrink-0 border">
-          <div class="flex-1"><input value="${z.name}" class="z-name w-full border border-slate-200 focus:border-sky-400 outline-none rounded p-2 font-bold transition-colors"></div>
-          <div class="flex flex-col gap-2">
-             <label class="text-xs bg-sky-100 text-sky-700 hover:bg-sky-200 px-3 py-1.5 rounded cursor-pointer text-center font-bold transition-colors">換圖<input type="file" class="hidden z-img" accept="image/*"></label>
-             <button class="z-del text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 px-3 py-1.5 rounded font-bold transition-colors">刪除</button>
+          <div class="w-12 h-12 md:w-16 md:h-16 rounded object-contain p-1 bg-gray-100 shrink-0 border flex items-center justify-center">
+            <img src="${z.imageData}" class="max-w-full max-h-full object-contain">
+          </div>
+          <div class="flex-1 min-w-0"><input value="${z.name}" class="z-name w-full border border-slate-200 focus:border-sky-400 outline-none rounded p-1.5 md:p-2 text-sm md:text-base font-bold transition-colors"></div>
+          <div class="flex flex-col gap-1 md:gap-2 shrink-0">
+             <label class="text-[10px] md:text-xs bg-sky-100 text-sky-700 hover:bg-sky-200 px-2 md:px-3 py-1 md:py-1.5 rounded cursor-pointer text-center font-bold transition-colors">換圖<input type="file" class="hidden z-img" accept="image/*"></label>
+             <button class="z-del text-[10px] md:text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 px-2 md:px-3 py-1 md:py-1.5 rounded font-bold transition-colors">刪除</button>
           </div>
         `;
         div.querySelector('.z-name').oninput = (e) => { z.name = e.target.value; saveConfig(); };
@@ -583,18 +582,20 @@
       list.innerHTML = '';
       config.items.forEach(it => {
         const div = document.createElement('div');
-        div.className = 'flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm transition-shadow hover:shadow-md';
+        div.className = 'flex items-center gap-2 md:gap-3 bg-white p-2 md:p-3 rounded-xl border shadow-sm transition-shadow hover:shadow-md min-w-0';
         const opts = config.zones.map(z => `<option value="${z.id}" ${z.id===it.correctZoneId?'selected':''}>${z.name}</option>`).join('');
         
         div.innerHTML = `
-          <img src="${it.imageData}" class="w-16 h-16 rounded object-cover bg-gray-100 shrink-0 border">
-          <div class="flex-1 grid gap-2">
-            <input value="${it.name}" class="i-name w-full border border-slate-200 focus:border-fuchsia-400 outline-none rounded p-1.5 font-bold transition-colors">
-            <select class="i-zone w-full border border-slate-200 outline-none rounded p-1.5 text-sm font-bold text-slate-700 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">${opts}</select>
+          <div class="w-12 h-12 md:w-16 md:h-16 rounded object-contain p-1 bg-gray-100 shrink-0 border flex items-center justify-center">
+            <img src="${it.imageData}" class="max-w-full max-h-full object-contain">
           </div>
-          <div class="flex flex-col gap-2">
-             <label class="text-xs bg-fuchsia-100 text-fuchsia-700 hover:bg-fuchsia-200 px-3 py-1.5 rounded cursor-pointer text-center font-bold transition-colors">換圖<input type="file" class="hidden i-img" accept="image/*"></label>
-             <button class="i-del text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 px-3 py-1.5 rounded font-bold transition-colors">刪除</button>
+          <div class="flex-1 grid gap-1 md:gap-2 min-w-0">
+            <input value="${it.name}" class="i-name w-full border border-slate-200 focus:border-fuchsia-400 outline-none rounded p-1 md:p-1.5 text-sm md:text-base font-bold transition-colors">
+            <select class="i-zone w-full border border-slate-200 outline-none rounded p-1 md:p-1.5 text-xs md:text-sm font-bold text-slate-700 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">${opts}</select>
+          </div>
+          <div class="flex flex-col gap-1 md:gap-2 shrink-0">
+             <label class="text-[10px] md:text-xs bg-fuchsia-100 text-fuchsia-700 hover:bg-fuchsia-200 px-2 md:px-3 py-1 md:py-1.5 rounded cursor-pointer text-center font-bold transition-colors">換圖<input type="file" class="hidden i-img" accept="image/*"></label>
+             <button class="i-del text-[10px] md:text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 px-2 md:px-3 py-1 md:py-1.5 rounded font-bold transition-colors">刪除</button>
           </div>
         `;
         div.querySelector('.i-name').oninput = (e) => { it.name = e.target.value; saveConfig(); };
@@ -631,7 +632,6 @@
       setTimeout(() => $('#saveIndicator').style.opacity = '0', 800);
     }
 
-    // ===== 7. 初始化與彩帶 =====
     function celebrateAt(x, y) {
       const container = $('#confetti');
       for(let i=0; i<15; i++) {
@@ -651,17 +651,14 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      // 初始化標題
       applyGameTitle();
 
-      // 設定標題輸入框連動
       $('#titleInput').oninput = (e) => {
         config.gameTitle = e.target.value || '【文特知識王】';
         applyGameTitle();
         saveConfig();
       };
 
-      // 介面切換
       $('#tabPlay').onclick = () => {
         state.mode = 'play';
         $('#playView').classList.remove('hidden'); $('#adminView').classList.add('hidden');
@@ -678,7 +675,6 @@
         stopTimer(); renderCMS();
       };
 
-      // 側邊欄導航
       $$('.admin-nav').forEach(btn => btn.onclick = () => {
         $$('.cms-section').forEach(s => s.classList.add('hidden'));
         const sec = btn.dataset.adminSection;
@@ -689,7 +685,6 @@
         });
       });
 
-      // 按鈕功能
       $('#resetBtn').onclick = resetGame;
       $('#playAgain').onclick = resetGame;
       $('#closeModal').onclick = () => $('#finishModal').classList.add('hidden');
@@ -712,15 +707,14 @@
            saveConfig(); 
            alert('✅ 匯入成功'); 
            renderCMS(); 
-           applyGameTitle(); // 匯入後同步更新標題
+           applyGameTitle();
          } catch(err){
            console.error(err);
            alert('❌ 格式錯誤：這不是有效的設定檔');
          }
-         e.target.value = ''; // 清空輸入框
+         e.target.value = '';
       });
 
-      // 啟動
       if(state.mode === 'play') $('#tabPlay').click(); else $('#tabAdmin').click();
     });
   </script>
